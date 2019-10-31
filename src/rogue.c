@@ -5,25 +5,13 @@
 #include <termios.h>
 #include <ctype.h>
 #include "level.h"
+#include "beings.h"
 
-#define MAIN_CHAR  'o'
+#define MAIN_CHAR  '@'
 #define EMPTY_CHAR ' '
 
 
-typedef enum {frendly, hostile, netural, hero} attitude;
-typedef struct
-{
-  point    pos;
-  char     sym;
-  unsigned speed;
-  attitude opinon;
-  int      hp;
-  unsigned dmg;
-} being;
 
-
-being * enemies;
-size_t   enemies_size =0;
 
 
 point rel2abs(const point center, const point p) //relative to absolute
@@ -51,10 +39,10 @@ void print_map()
 
 being* search_being(point pos)
 {
-  for(size_t i=0; i<enemies_size; ++i)
+  for(size_t i=0; i<beings_size; ++i)
   {
-    if(enemies[i].pos.x==pos.x && enemies[i].pos.y ==pos.y)
-      return &enemies[i];
+    if(beings[i].pos.x==pos.x && beings[i].pos.y ==pos.y)
+      return &beings[i];
   }
   return NULL;
 }
@@ -75,6 +63,11 @@ int isfree(point p)
   return 0;
 }
 
+void clear()
+{
+  char seq[] = {27, '[', '2', 'J'};
+  puts(seq);
+}
 
 void game_over()
 {
@@ -129,27 +122,8 @@ void move_right(being* b) {move(b, (point){b->speed,  0});}
 void move_up(being* b)    {move(b, (point){0, -b->speed});}
 void move_down(being* b)  {move(b, (point){0,  b->speed});}
 
-void enemies_init()
-{
-  point iter;
-  for(iter.x=0; iter.x<HORIZ_SIZE; ++iter.x)
-    for(iter.y = 0; iter.y<VERT_SIZE; ++iter.y)
-      if(get_char(iter)=='e')
-        enemies_size++;
-  enemies = malloc(enemies_size*sizeof(being));
-  int i=0;
-  for(iter.x=0; iter.x<HORIZ_SIZE; ++iter.x)
-    for(iter.y = 0; iter.y<VERT_SIZE; ++iter.y)
-      if(get_char(iter)=='e')
-        enemies[i++] =(being) {.pos=iter, .sym='e', .speed=1, .dmg=5, .hp=10};
-}
 
 
-void clear()
-{
-  char seq[] = {27, '[', '2', 'J'};
-  puts(seq);
-}
 
 int hero_actions(being *hero)
 {
@@ -232,7 +206,7 @@ void tick(const being hero)
 int main()
 {
   enable_raw_mode();
-  enemies_init();
+  beings_init();
 
   being hero = {.pos={2, 10},.sym=MAIN_CHAR, .speed=1, .dmg=5, .hp=10};
   set_char(hero.pos, hero.sym);
@@ -243,7 +217,7 @@ int main()
     //ai_do_somethnigs
     //print_state
     while(hero_actions(&hero)!=1);
-    //evil_actions(enemies[0], &hero);
+    //evil_actions(beings[0], &hero);
     tick(hero);
   }
   return 0;
