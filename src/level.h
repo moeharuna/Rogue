@@ -1,12 +1,17 @@
+#include <stdlib.h>
 #ifndef ROGUE_LEVEL
 #define ROGUE_LEVEL
-extern char map[];
-#define VERT_SIZE   20
-#define HORIZ_SIZE  5
+typedef struct
+{
+  char * map;
+  size_t vert_size, horiz_size;
+}level;
 typedef struct
 {
   unsigned int x, y;
 } point;
-int get_char (const point p)               ;
-void set_char(const point p, const char ch);
+level * this_lvl;
+int get_point (const point p)               ;
+void set_point(const point p, const char ch);
+void load_level(const char* filename);
 #endif //ROGUE_LEVEL

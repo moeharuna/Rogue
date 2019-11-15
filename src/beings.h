@@ -8,7 +8,7 @@ typedef struct
   point    pos;
   char     sym;
   unsigned speed;
-  attitude opinon;
+  attitude opinion;
   int      hp;
   unsigned dmg;
 } being;
@@ -16,5 +16,6 @@ void beings_init();
 
 
 being * beings;
-size_t   beings_size =0;
-#endif
+size_t  beings_count =0;
+being * main_hero;
+#endif //BEING
