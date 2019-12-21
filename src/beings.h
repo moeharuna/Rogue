@@ -2,20 +2,25 @@
 #include <stdlib.h>
 #ifndef BEING
 #define BEING
-typedef enum {frendly, hostile, netural, hero} attitude;
+typedef enum {FRENDLY=0, HOSTILE=1, NETURAl=2, HERO=3} Attitude;
 typedef struct
 {
   point    pos;
   char     sym;
   unsigned speed;
-  attitude opinion;
+  Attitude opinion;
   int      hp;
   unsigned dmg;
+
 } being;
+being* search_being(point pos);
 void beings_init();
 
 
 being * beings;
-size_t  beings_count =0;
-being * main_hero;
+size_t  beings_s;
+being * being_types; //must be readed from file
+size_t being_types_s;
+
+
 #endif //BEING

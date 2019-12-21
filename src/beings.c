@@ -1,7 +1,8 @@
 #include "beings.h"
 #include "level.h"
-being * being_types; //must be readed from file
-size_t being_types_s;
+#include "input.h"
+#include <stdio.h>
+
 
 
 int being_exist(int ch)
@@ -12,29 +13,58 @@ int being_exist(int ch)
     }
   return 0;
 }
-void read_types(const char* filename)
+
+
+being* search_being(point pos)
 {
-  being_types = malloc(sizeof(being));
-  being_types[0] = (being) {.sym='e', .speed=1, .opinion=hostile, .hp=1, .dmg=0};
-  being_types_s = 1;
+  for(size_t i=0; i<beings_s; ++i)
+  {
+    if(beings[i].pos.x==pos.x && beings[i].pos.y==pos.y)
+      return &beings[i];
+  }
+  return NULL;
 }
-void beings_init(void)
+
+void being_from_type(being * dest, const being* type )
 {
+  dest->sym =     type->sym;
+  dest->hp  =     type->hp;
+  dest->dmg =     type->dmg;
+  dest->opinion = type->opinion;
+  dest->speed =   type->speed;
+}
+void beings_init(char * filename)
+{
+  read_types(filename);
   point iter;
   for(iter.x=0; iter.x<this_lvl->horiz_size; ++iter.x)
     for(iter.y = 0; iter.y<this_lvl->vert_size; ++iter.y)
       if(being_exist(get_point(iter)))
-        beings_count++;
-  beings = malloc(beings_count*sizeof(being));
-  int beings_counter=0;
+      {
+        beings_s++;
+      }
+  beings = malloc((beings_s+1)*sizeof(being)); //+1 for main_hero
+  int beings_count=0;
   for(iter.x=0; iter.x<this_lvl->horiz_size; ++iter.x)
     for(iter.y = 0; iter.y<this_lvl->vert_size; ++iter.y)
       for(size_t i=0; i<being_types_s; ++i)
         if(get_point(iter)==being_types[i].sym)
         {
-          beings[beings_counter].pos = iter;
-          beings[beings_counter++] =being_types[i];
+#ifdef DEUBG
+          fprintf(stderr, "point =%c", get_point(iter));
+#endif
+          beings[beings_count].pos = iter;
+          being_from_type(&beings[beings_count++], &being_types[i]);
         }
+#ifdef DEBUG
+  puts("main_hero init start");
+#endif
+  being * main_hero =malloc(sizeof(being));
+  main_hero  = (&(being) {.sym='h', .speed=1, .opinion=HERO, .hp=10, .dmg=1, .pos={5, 5}});
+  beings[beings_s++] = *main_hero;
+  set_point(main_hero->pos, main_hero->sym);
+#ifdef DEBUG
+  puts("main_hero init end");
+#endif
 
-  main_hero  = (&(being) {.sym='h', .speed=1, .opinion=hero, .hp=10, .dmg=1, .pos={5, 5}});
 }

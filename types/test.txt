@@ -1,0 +1,5 @@
+sym: e
+speed: 1
+opinion: 1
+hp: 4
+dmg: 1

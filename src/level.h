@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #ifndef ROGUE_LEVEL
 #define ROGUE_LEVEL
+#define EMPTY_CHAR ' '
 typedef struct
 {
   char * map;
@@ -13,5 +14,6 @@ typedef struct
 level * this_lvl;
 int get_point (const point p)               ;
 void set_point(const point p, const char ch);
-void load_level(const char* filename);
+point plus_point(const point, const int, const int);
+int point_equals(const point p1, const point p2);
 #endif //ROGUE_LEVEL
