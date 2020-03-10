@@ -13,14 +13,13 @@ typedef struct
   unsigned dmg;
 
 } being;
-being* search_being(point pos);
-void beings_init();
-
 
 being * beings;
 size_t  beings_s;
 being * being_types; //must be readed from file
 size_t being_types_s;
 
-
+being* search_being(point pos);
+void beings_init();
+int is_enemy(const being subject, const being object);
 #endif //BEING

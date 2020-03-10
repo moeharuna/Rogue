@@ -3,7 +3,30 @@
 #include "input.h"
 #include <stdio.h>
 
-
+int is_enemy(const being subject, const being object)
+{
+  switch(subject.opinion)
+  {
+  case HERO:
+    if(object.opinion==HOSTILE)
+      return 1;
+    else return 0;
+    break;
+  case HOSTILE:
+    if(object.opinion==HERO &&
+       object.opinion==FRENDLY)
+      return 1;
+    else return 0;
+    break;
+  case FRENDLY:
+    if(object.opinion==HOSTILE)
+      return 1;
+    else return 0;
+  default:
+    return 0;
+    break;
+  }
+}
 
 int being_exist(int ch)
 {

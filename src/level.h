@@ -16,4 +16,6 @@ int get_point (const point p)               ;
 void set_point(const point p, const char ch);
 point plus_point(const point, const int, const int);
 int point_equals(const point p1, const point p2);
+point rel2abs(const point center, const point p); //relative to absolute
+int isfree(const point p);
 #endif //ROGUE_LEVEL

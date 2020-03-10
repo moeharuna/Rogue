@@ -10,29 +10,61 @@
 #include "input.h"
 
 
-
-point rel2abs(const point center, const point p) //relative to absolute
+struct termios orig_termios;
+void disable_terminal_mode()
 {
-  point where = {center.x+p.x, center.y+p.y};
-  return where;
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void enable_terminal_mode(void)
+{
+  struct termios raw;
+  tcgetattr(STDIN_FILENO, &orig_termios);
+  atexit(disable_terminal_mode);
+  raw = orig_termios;
+  raw.c_lflag &= ~(ECHO | ICANON);
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
 
-
-int isfree(point p)
+void move(being* b, point distance)
 {
-  if(p.x>=this_lvl->horiz_size ||
-     p.y>=this_lvl->vert_size) return 0;
-  if(get_point(p)==EMPTY_CHAR) return 1;
-  return 0;
+#ifdef DEBUG
+  printf("Move from (%d, %d) on (%d %d) pixels\n", b->pos.x, b->pos.y,
+                                                   distance.x, distance.y );
+#endif
+  point pos = rel2abs(b->pos, distance);
+  if(isfree(pos))
+  {
+    set_point(pos, b->sym);
+    set_point(b->pos, EMPTY_CHAR);
+    b->pos = rel2abs(b->pos, distance);
+  }
 }
 
-void clear()
+
+void move_left(being* b)  {move(b, (point){-b->speed, 0});}
+void move_right(being* b) {move(b, (point){b->speed,  0});}
+void move_up(being* b)    {move(b, (point){0, -b->speed});}
+void move_down(being* b)  {move(b, (point){0,  b->speed});}
+
+
+void hostile_move(being * subject)
 {
-  char seq[] = {27, '[', '2', 'J'};
-  puts(seq);
+  random()%2 ? move(subject, (point) {random()%2, random()%2})
+    :move(subject, (point) {-random()%2, -random()%2});
 }
 
+
+void attack(const being atk, being* def) // be careful! there is no check for dying
+{
+#ifdef DEBUG
+  fprintf(stderr, "def->hp= %d\n", def->hp);
+#endif
+  def->hp-=atk.dmg;
+}
+
+void clear();
 void game_over()
 {
   clear();
@@ -54,7 +86,7 @@ void being_die(being *body)
   size_t i=0;
   while(!point_equals(beings[i].pos, body->pos))i++;
 #ifdef DEBUG
-  fprintf(stderr, "%d is killing...", i);
+  fprintf(stderr, "%ld is killing...", i);
 #endif
   for(size_t j=i; j<beings_s-1; ++j){
     beings[j]=beings[j+1];
@@ -62,66 +94,64 @@ void being_die(being *body)
   beings_s--;
 }
 
-void attack(const being atk, being* def) // be careful! there is no check for dying
+
+int start_engage(being * attacker, being * defender) //battle start
+                                                     //0 - attacker win, 1 - defender win, 2 - nothing happened -1 if bug
 {
-  #ifdef DEBUG
-  fprintf(stderr, "def->hp= %d\n", def->hp);
-  #endif
-  def->hp-=atk.dmg;
-}
-
-
-void move(being* b, point distance)
-{
-#ifdef DEBUG
-  printf("Move from (%d, %d) on (%d %d) pixels\n", b->pos.x, b->pos.y,
-                                                   distance.x, distance.y );
-#endif
-  point pos = rel2abs(b->pos, distance);
-  being * enemy = search_being(pos);
-  if(isfree(pos))
+  int engage_action(being * subj, being * obj)
   {
-    set_point(pos, b->sym);
-    set_point(b->pos, EMPTY_CHAR);
-    b->pos = rel2abs(b->pos, distance);
-  }
-  else if(enemy!=NULL && b->opinion==HERO && enemy->opinion==HOSTILE)
-  {
-    attack(*b, enemy);
-  }
-}
-
-void move_left(being* b)  {move(b, (point){-b->speed, 0});}
-void move_right(being* b) {move(b, (point){b->speed,  0});}
-void move_up(being* b)    {move(b, (point){0, -b->speed});}
-void move_down(being* b)  {move(b, (point){0,  b->speed});}
-
-
-
-
-int is_enemy(const being subject, const being object)
-{
-  switch(subject.opinion)
-  {
-  case HERO:
-    if(object.opinion==HOSTILE)
-      return 1;
-    else return 0;
-    break;
-  case HOSTILE:
-    if(object.opinion==HERO &&
-       object.opinion==FRENDLY)
-      return 1;
-    else return 0;
-    break;
-  case FRENDLY:
-    if(object.opinion==HOSTILE)
-      return 1;
-    else return 0;
-  default:
+    if(subj->opinion==HERO)
+    {
+      printf("Select a action: att=↑ def=← mag=↓ esc=→\n");
+      switch(key_press())
+      {
+      case ARROW_UP:
+        attack(*subj, obj);
+        break;
+      case ARROW_DOWN:
+      case ARROW_LEFT:
+        printf("not implemented! sorry!\n");
+        return engage_action(subj, obj);
+        break;
+      case ARROW_RIGHT:
+      retreat:
+        {
+          point pos;
+          pos.x = 2 * (random()%3-1);
+          pos.y = 2 * (random()%3-1);
+          printf("sub.x=%d, sub.y=%d, x=%d, y=%d\n",subj->pos.x, subj->pos.y, pos.x, pos.y);
+          if(isfree(pos))
+            move(subj, pos);
+          else
+            goto retreat;
+          return 1;
+        }
+      default:
+        return engage_action(subj, obj);
+        break;
+      }
+    }
+    else
+      attack(*subj, obj);
     return 0;
-    break;
   }
+  if(!is_enemy(*attacker, *defender))
+    return -1;
+  puts("engage started!");
+  int ischiken=0;
+  while(attacker->hp >0) //defender hp checked inside
+  {
+    ischiken += engage_action(attacker, defender);
+    if(defender->hp<=0)
+    {
+      being_die(defender);
+      return 0;
+    }
+   ischiken += engage_action(defender, attacker);
+   if(ischiken) return 2;
+  }
+  being_die(attacker);
+  return 1;
 }
 
 
@@ -143,90 +173,6 @@ being * enemy_nearby(const being subject)
   return NULL;
 }
 
-
-void hostile_move(being * subject)
-{
-    random()%2 ? move(subject, (point) {random()%2, random()%2})
-                :move(subject, (point) {-random()%2, -random()%2});
-}
-
-struct termios orig_termios;
-void disable_raw_mode()
-{
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
-}
-
-void enable_raw_mode(void)
-{
-  struct termios raw;
-  tcgetattr(STDIN_FILENO, &orig_termios);
-  atexit(disable_raw_mode);
-  raw = orig_termios;
-  raw.c_lflag &= ~(ECHO | ICANON);
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-}
-
-void print_status(const being h)
-{
-  printf("hp=%d, dmg=%d, speed=%d\r\n", h.hp, h.dmg, h.speed);
-}
-void print_map()
-{
-  point std;
-  for(std.y=0; std.y<this_lvl->vert_size; ++std.y)
-  {
-    for(std.x=0; std.x<this_lvl->horiz_size; ++std.x)
-    {
-      putchar(get_point(std));
-    }
-    //printf("\r\n"); //\n don't makes newline in raw_mode
-  }
-}
-
-
-int start_engage(being * attacker, being * defender) //battle start
-                                                     //0 if attacker win, 1 if defender win -1 if bug
-{
-  void engage_action(being * subj, being * obj)
-  {
-    if(subj->opinion==HERO)
-    {
-      printf("Select a action: att=↑ def=← mag=↓ esc=→\n");
-      switch(key_press())
-      {
-      case ARROW_UP:
-        attack(*subj, obj);
-        break;
-      case ARROW_DOWN:
-      case ARROW_LEFT:
-      case ARROW_RIGHT:
-        printf("not implemented! sorry!\n");
-        engage_action(subj, obj);
-        break;
-      default:
-        engage_action(subj, obj);
-        break;
-      }
-    }
-    else
-      attack(*subj, obj);
-  }
-  if(!is_enemy(*attacker, *defender))
-    return -1;
-  puts("engage started!");
-  while(attacker->hp >0) //defender hp checked inside
-  {
-    engage_action(attacker, defender);
-    if(defender->hp<=0)
-    {
-      being_die(defender);
-      return 0;
-    }
-   engage_action(defender, attacker);
-  }
-  being_die(attacker);
-  return 1;
-}
 
 int hero_action(being *hero)
 {
@@ -251,16 +197,39 @@ int hero_action(being *hero)
   return 1;
 }
 
+
+void clear()
+{
+  char seq[] = {27, '[', '2', 'J'};
+  puts(seq);
+}
+void print_status(const being h)
+{
+  printf("hp=%d, dmg=%d, speed=%d\r\n", h.hp, h.dmg, h.speed);
+}
+void print_map()
+{
+  point std;
+  for(std.y=0; std.y<this_lvl->vert_size; ++std.y)
+  {
+    for(std.x=0; std.x<this_lvl->horiz_size; ++std.x)
+      putchar(get_point(std));
+    //printf("\r\n"); //\n don't makes newline in raw_mode
+  }
+}
+
 void tick(const being hero)
 {
   //clear();
   print_map();
+  print_status(hero);
 }
+
 
 int main()
 {
   srandom((unsigned long)time);
-  enable_raw_mode();
+  enable_terminal_mode();
   load_level("levels/test.txt");
   beings_init("types/test.txt");
   being * hero = NULL;
