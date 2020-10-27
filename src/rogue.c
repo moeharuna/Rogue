@@ -9,7 +9,7 @@
 #include "beings.h"
 #include "input.h"
 
-
+being * hero = NULL;
 struct termios orig_termios;
 void disable_terminal_mode()
 {
@@ -61,7 +61,13 @@ void attack(const being atk, being* def) // be careful! there is no check for dy
 #ifdef DEBUG
   fprintf(stderr, "def->hp= %d\n", def->hp);
 #endif
-  def->hp-=atk.dmg;
+  int damage2deal=0;
+  damage2deal = atk.dmg;
+  if(atk.opinion==HERO)
+    printf("You hit the %s. %s lost %d hp.\n", "enemy", "enemy", damage2deal);
+  else if(def->opinion==HERO)
+    printf("You have been hit. You lost %d hp.\n", damage2deal);
+  def->hp-=damage2deal;
 }
 
 void clear();
@@ -102,7 +108,7 @@ int start_engage(being * attacker, being * defender) //battle start
   {
     if(subj->opinion==HERO)
     {
-      printf("Select a action: att=↑ def=← mag=↓ esc=→\n");
+
       switch(key_press())
       {
       case ARROW_UP:
@@ -114,18 +120,21 @@ int start_engage(being * attacker, being * defender) //battle start
         return engage_action(subj, obj);
         break;
       case ARROW_RIGHT:
-      retreat:
+      {
+        printf("You trying to flee...\n");
+        point pos;
+        pos.x = 2 * (random()%4-1);
+        pos.y = 2 * (random()%4-1);
+        printf("sub.x=%d, sub.y=%d, x=%d, y=%d\n",subj->pos.x, subj->pos.y, pos.x, pos.y);
+        if(isfree(pos))
+          move(subj, pos);
+        else
         {
-          point pos;
-          pos.x = 2 * (random()%3-1);
-          pos.y = 2 * (random()%3-1);
-          printf("sub.x=%d, sub.y=%d, x=%d, y=%d\n",subj->pos.x, subj->pos.y, pos.x, pos.y);
-          if(isfree(pos))
-            move(subj, pos);
-          else
-            goto retreat;
-          return 1;
+          printf("You fail the flee\n");
+          return 0;
         }
+        return 1;
+      }
       default:
         return engage_action(subj, obj);
         break;
@@ -138,6 +147,8 @@ int start_engage(being * attacker, being * defender) //battle start
   if(!is_enemy(*attacker, *defender))
     return -1;
   puts("engage started!");
+  if(attacker->opinion==HERO || defender->opinion==HERO)
+    printf("Select a action: att=↑ def=← mag=↓ esc=→\n");
   int ischiken=0;
   while(attacker->hp >0) //defender hp checked inside
   {
@@ -197,6 +208,15 @@ int hero_action(being *hero)
   return 1;
 }
 
+int hostile_action(being *hostile)
+{
+  hostile_move(hostile);
+  being * enemy = NULL;
+  if( (enemy = enemy_nearby(*hostile)))
+    start_engage(hostile, enemy);
+  return 1;
+}
+
 
 void clear()
 {
@@ -230,6 +250,7 @@ void init_staff()
 being* search_for_hero() //search4hero in beings_list that inited on file_read
 {
   being * hero = NULL;
+
   for(size_t i=0; i<beings_s; ++i)
   {
     if(beings[i].opinion==HERO)
@@ -237,6 +258,7 @@ being* search_for_hero() //search4hero in beings_list that inited on file_read
   }
   if(hero==NULL)
   {
+<<<<<<< HEAD
     fprintf(stderr, "ERORR! main character not found.");
     exit(1);
   }
@@ -246,18 +268,13 @@ being* search_for_hero() //search4hero in beings_list that inited on file_read
 void beings_action(being* hero)
 {
   for(size_t i=0; i<beings_s; ++i)
-      switch(beings[i].opinion)
-      {
-      case HOSTILE:
-        hostile_move(&beings[i]);
-        if(enemy_nearby(beings[i])) start_engage(&beings[i], hero);
-        break;
-      default:
-        if(beings[i].opinion!=HERO)
-          puts("only enemy beings and hero character implemented");
-        break;
-      }
+    fprintf(stderr, "ERORR! player character not found.");
+    exit(1);
+  }
+  tick(*hero);
+  return 0;
 }
+
 
 int main()
 {
