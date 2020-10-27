@@ -218,20 +218,17 @@ void print_map()
   }
 }
 
-void tick(const being hero)
-{
-  //clear();
-  print_map();
-  print_status(hero);
-}
 
-
-int main()
+void init_staff()
 {
   srandom((unsigned long)time);
   enable_terminal_mode();
   load_level("levels/test.txt");
   beings_init("types/test.txt");
+}
+
+being* search_for_hero() //search4hero in beings_list that inited on file_read
+{
   being * hero = NULL;
   for(size_t i=0; i<beings_s; ++i)
   {
@@ -240,14 +237,15 @@ int main()
   }
   if(hero==NULL)
   {
-    fprintf(stderr, "ERORR! main character not found. Please report this to creator");
+    fprintf(stderr, "ERORR! main character not found.");
     exit(1);
   }
-  tick(*hero);
-  while(1)
-  {
-    while(hero_action(hero)!=1); //do things while they not take time
-    for(size_t i=0; i<beings_s; ++i)
+  return hero;
+}
+
+void beings_action(being* hero)
+{
+  for(size_t i=0; i<beings_s; ++i)
       switch(beings[i].opinion)
       {
       case HOSTILE:
@@ -256,10 +254,21 @@ int main()
         break;
       default:
         if(beings[i].opinion!=HERO)
-          puts("not yet implemented! Sorry!");
+          puts("only enemy beings and hero character implemented");
         break;
       }
-    tick(*hero);
+}
+
+int main()
+{
+  init_staff();
+  being *hero = search_for_hero();
+  while(1)
+  {
+    print_map();
+    print_status(*hero);
+    while(hero_action(hero)!=1); //do things while they not take time
+    beings_action(hero);
   }
   return 0;
 }
