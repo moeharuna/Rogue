@@ -1,2 +1,2 @@
-Another unfinished rogue-like
+Another unfinished rogue-like.
 Makefile in /src/
